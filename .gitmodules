@@ -1,0 +1,6 @@
+[submodule "vendor/prototype"]
+	path = vendor/prototype
+	url = git://github.com/thinkerbot/prototype.git
+[submodule "vendor/ts"]
+	path = vendor/ts
+	url = git://github.com/thinkerbot/ts.git

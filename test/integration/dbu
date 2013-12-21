@@ -1,0 +1,12 @@
+#!/bin/bash
+. test/integration/helper
+
+#
+# -h
+#
+
+test_dbu_prints_help () {
+dbu -h | grep -q "usage: dbu"
+}
+
+. ts

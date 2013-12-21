@@ -1,0 +1,5 @@
+#!/usr/bin/env ruby
+libexec   = File.expand_path('../../libexec',  __FILE__)
+prototype = File.expand_path('../../vendor/prototype',  __FILE__)
+ENV['PATH'] = "#{libexec}:#{prototype}/bin:#{prototype}/core:#{ENV['PATH']}"
+exec 'dbu', *ARGV

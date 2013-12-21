@@ -1,0 +1,42 @@
+#!/bin/bash
+#############################################################################
+. prototype .
+. prototype_setup
+
+#############################################################################
+dbu_usage () {
+printf "%s" "\
+usage: dbu [-h] COMMAND ARGS...
+
+  Launches dbu commands.
+
+options:
+
+  -h          prints help
+
+commands:
+
+`prototype-list | sed -e 's/^/  /'`
+
+"
+}
+while getopts "h" option
+do
+  case $option in
+    (h)  dbu_usage
+         exit 0 ;;
+    (*)  dbu_usage | head -n 1
+         exit 2 ;;
+  esac
+done
+shift $(($OPTIND - 1))
+
+if [ $# -eq 0 ]
+then
+  dbu_usage
+  exit 1
+fi
+#############################################################################
+
+. prototype_exec_reset
+. prototype_exec
