@@ -9,9 +9,9 @@ begin
   )
   OptionParser.new do |opts|
     opts.banner = %{
-usage: dbu psql [options] -- [PSQLARGS...]
+usage: dbu console [options] -- [ARGS...]
 
-  Connect to postgres using the dbu config file.
+  Connect to specified database using the dbu config file.
 
 options:
 }.lstrip
@@ -46,11 +46,18 @@ options:
   end.parse!
 
   config = Dbu.load_db_config(options)
+  db = config['dbu']
 
-  command = ["psql", "-h", config['host'], "-p", config['port'], "-U", config['username'], "-d", config['database']]
-  command = command.map(&:to_s)
+  case db
+  when 'postgres'
+    command = ["psql", "-h", config['host'], "-p", config['port'], "-U", config['username'], "-d", config['database']]
+    command = command.map(&:to_s)
+    ENV["PGPASSWORD"] = config['password'] if config['password']
+  else
+    raise "unsupported dbu database: #{db.inspect}"
+  end
+
   command = Shellwords.shelljoin(command + options[:opts] + ARGV)
-  ENV["PGPASSWORD"] = config['password'] if config['password']
 
   case options[:mode]
   when :preview

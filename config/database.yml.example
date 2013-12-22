@@ -1,4 +1,5 @@
 postgres: &default
+  dbu: postgres
   host: localhost
   database: vagrant
   port: 5433
