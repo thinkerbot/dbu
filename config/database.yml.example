@@ -1,1 +1,8 @@
-development: {}
+postgres: &default
+  host: localhost
+  database: vagrant
+  port: 5433
+  username: vagrant
+  password: vagrant
+
+development: *default

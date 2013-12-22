@@ -1,0 +1,28 @@
+#!/bin/bash
+. test/integration/helper
+
+setup () {
+export DBU_ENVIRONMENT=postgres
+}
+
+test_dbu_psql_connects_to_postgres () {
+printf "select version();" | dbu psql | grep -q "PostgreSQL"
+}
+
+#
+# -h
+#
+
+test_dbu_psql_prints_help () {
+dbu psql -h | grep -q "usage: dbu psql"
+}
+
+#
+# -p
+#
+
+test_dbu_psql_p_prints_preview_command () {
+dbu psql -p | grep -q "psql -h"
+}
+
+. ts

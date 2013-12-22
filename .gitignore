@@ -1,6 +1,7 @@
 *.gem
 *.rbc
 .bundle
+.vagrant
 Gemfile.lock
 /tmp
 /config/*.yml

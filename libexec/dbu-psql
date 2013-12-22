@@ -1,0 +1,70 @@
+#!/usr/bin/env ruby
+begin
+  require 'dbu'
+  require 'shellwords'
+
+  options = Dbu.options(
+    :mode => :exec,
+    :opts => []
+  )
+  OptionParser.new do |opts|
+    opts.banner = %{
+usage: dbu psql [options] -- [PSQLARGS...]
+
+  Connect to postgres using the dbu config file.
+
+options:
+}.lstrip
+
+    opts.on("-c", "--config-file CONFIG_FILE", "database config file") do |value|
+      options[:config_file] = value
+    end
+
+    opts.on("-e", "--environment ENVIRONMENT", "database environment") do |value|
+      options[:environment] = value
+    end
+
+    opts.on("--debug", "enable debugging") do
+      $DEBUG = true
+    end
+
+    opts.on("-p", "--preview", "preview command") do
+      options[:mode] = :preview
+    end
+
+    opts.on("-h", "--help", "print this help") do
+      puts opts
+      puts
+      puts Dbu.version
+      exit
+    end
+
+    opts.on("--version", "print version information") do |node|
+      puts Dbu.version
+      exit
+    end
+  end.parse!
+
+  config = Dbu.load_db_config(options)
+
+  command = ["psql", "-h", config['host'], "-p", config['port'], "-U", config['username'], "-d", config['database']]
+  command = command.map(&:to_s)
+  command = Shellwords.shelljoin(command + options[:opts] + ARGV)
+  ENV["PGPASSWORD"] = config['password'] if config['password']
+
+  case options[:mode]
+  when :preview
+    puts command
+  else
+    exec command
+  end
+
+rescue Interrupt
+  exit 130
+rescue Errno::EPIPE
+  exit 0
+rescue
+  raise if $DEBUG
+  $stderr.puts $!.message
+  exit 1
+end
