@@ -21,7 +21,7 @@ usage: dbu conn [options] -- [ARGS...]
 options:
 }.lstrip
 
-    opts.on("-c", "--config-file CONFIG_FILE", "database config file") do |value|
+    opts.on("-c", "--config-file CONFIG_FILE", "database config file (#{options[:config_file]})") do |value|
       options[:config_file] = value
     end
 

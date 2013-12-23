@@ -7,15 +7,15 @@ module Dbu
 
   def options(overrides = {})
     options = {
-      :environment    => ENV['DBU_ENVIRONMENT'] || 'development',
-      :database_file  => ENV['DBU_DATABASE_FILE'] || 'config/database.yml',
+      :environment => ENV['DBU_ENVIRONMENT'] || 'development',
+      :config_file => ENV['DBU_DATABASE_FILE'] || 'config/database.yml',
     }.merge(overrides)
   end
 
   def load_db_config(options = {})
-    database_file = options[:database_file]
-    environment   = options[:environment]
-    YAML.load_file(database_file).fetch(environment)
+    config_file = options[:config_file]
+    environment = options[:environment]
+    YAML.load_file(config_file).fetch(environment)
   end
 
   def version

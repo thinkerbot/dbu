@@ -34,6 +34,17 @@ printf "select 1,'a'" | dbu conn | assert_output "\
 }
 
 #
+# -c
+#
+
+test_dbu_conn_c_sets_config_file () {
+config_file="$ts_test_dir/config"
+mkdir -p "$ts_test_dir"
+sed -e 's/development/example/' config/database.yml > "$config_file"
+dbu conn -p -c "$config_file" -e example | grep -q "psql -h"
+}
+
+#
 # -h
 #
 
