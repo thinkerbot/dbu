@@ -19,4 +19,5 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.provision :shell, :path => "vm/bootstrap.sh"
 
   config.vm.network "forwarded_port", guest: 5432, host: 5433, auto_correct: true
+  config.vm.network "forwarded_port", guest: 3306, host: 3333, auto_correct: true
 end

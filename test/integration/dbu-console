@@ -6,6 +6,11 @@ export DBU_ENVIRONMENT=postgres
 printf "select version();" | dbu console | grep -q "PostgreSQL"
 }
 
+test_dbu_console_connects_to_mysql () {
+export DBU_ENVIRONMENT=mysql
+printf "show variables like 'version';" | dbu console | grep -q "version"
+}
+
 #
 # -h
 #

@@ -51,13 +51,15 @@ options:
   case db
   when 'postgres'
     command = ["psql", "-h", config['host'], "-p", config['port'], "-U", config['username'], "-d", config['database']]
-    command = command.map(&:to_s)
     ENV["PGPASSWORD"] = config['password'] if config['password']
+  when 'mysql'
+    command = ["mysql", "-h", config['host'], "-P", config['port'], "-u", config['username'], config['database']]
+    ENV["MYSQL_PWD"] = config['password'] if config['password']
   else
     raise "unsupported dbu database: #{db.inspect}"
   end
 
-  command = Shellwords.shelljoin(command + options[:opts] + ARGV)
+  command = Shellwords.shelljoin(command.map(&:to_s) + options[:opts] + ARGV)
 
   case options[:mode]
   when :preview

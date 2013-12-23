@@ -6,4 +6,12 @@ postgres: &default
   username: vagrant
   password: vagrant
 
+mysql:
+  dbu: mysql
+  host: 127.0.0.1
+  database: vagrant
+  port: 3333
+  username: vagrant
+  password: vagrant
+
 development: *default

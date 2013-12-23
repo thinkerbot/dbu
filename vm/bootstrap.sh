@@ -39,6 +39,16 @@ apt-get -y install expect
 
 sudo apt-get -y install postgresql
 
+# Fix authentication method for database
+sed -i.bak -e "s/#listen_addresses = 'localhost'/listen_addresses = '*'    /" /etc/postgresql/9.1/main/postgresql.conf
+sed -i.bak -f - /etc/postgresql/9.1/main/pg_hba.conf <<EOS
+  /local \{1,\}all \{1,\}all/s/peer/trust/
+  /host \{1,\}all \{1,\}all/s/md5/trust/
+  /host \{1,\}all \{1,\}all/s/127.0.0.1\/32/0.0.0.0\/0/
+EOS
+service postgresql restart
+
+# Create target database
 sudo -u postgres createuser --superuser vagrant
 sudo -u postgres expect -f - <<DOC
 spawn psql
@@ -47,3 +57,21 @@ expect "Enter new password:" { send "vagrant\r" }
 expect "Enter it again:" { send "vagrant\r" }
 DOC
 sudo -u postgres createdb vagrant
+
+#
+# Install mysql
+#
+
+debconf-set-selections <<< 'mysql-server mysql-server/root_password password root'
+debconf-set-selections <<< 'mysql-server mysql-server/root_password_again password root'
+sudo apt-get -y install mysql-server
+
+sed -i.bak -e "/bind-address/d" /etc/mysql/my.cnf
+
+service mysql restart
+
+mysql -uroot -proot <<DOC
+CREATE USER 'vagrant'@'%' IDENTIFIED BY 'vagrant';
+GRANT ALL PRIVILEGES ON *.* TO 'vagrant'@'%' WITH GRANT OPTION;
+CREATE DATABASE vagrant;
+DOC
