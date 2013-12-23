@@ -5,13 +5,18 @@ begin
 
   options = Dbu.options(
     :mode => :exec,
-    :opts => []
+    :opts => [],
+    :field_sep => "\t",
+    :stream => !$stdin.tty?
   )
   OptionParser.new do |opts|
     opts.banner = %{
-usage: dbu console [options] -- [ARGS...]
+usage: dbu conn [options] -- [ARGS...]
 
-  Connect to specified database using the dbu config file.
+  Connect to specified database using the dbu config file and provide the user
+  a prompt. If stdin is not a tty then the connection will accept sql and
+  format the output as a stream (ie no table decorations and non-result
+  output).
 
 options:
 }.lstrip
@@ -20,8 +25,13 @@ options:
       options[:config_file] = value
     end
 
-    opts.on("-e", "--environment ENVIRONMENT", "database environment") do |value|
+    opts.on("-e", "--environment ENVIRONMENT", "database environment (#{options[:environment]})") do |value|
       options[:environment] = value
+    end
+
+
+    opts.on("-F", "--field-sep FIELD_SEP", "field separator for -s (#{options[:field_sep].inspect})") do |value|
+      options[:field_sep] = value
     end
 
     opts.on("--debug", "enable debugging") do
@@ -37,6 +47,10 @@ options:
       puts
       puts Dbu.version
       exit
+    end
+
+    opts.on("-s", "--[no-]stream", "stream results") do |value|
+      options[:stream] = value
     end
 
     opts.on("--version", "print version information") do |node|
@@ -59,7 +73,19 @@ options:
     raise "unsupported dbu database: #{db.inspect}"
   end
 
-  command = Shellwords.shelljoin(command.map(&:to_s) + options[:opts] + ARGV)
+  if options[:stream]
+    case db
+    when 'postgres'
+      command += ["--no-align", "--field-separator", options[:field_sep], "--tuples-only", "--quiet"]
+    when 'mysql'
+      if options[:field_sep] != "\t"
+        raise "mysql does not support setting a non-tab field sep"
+      end
+      command += ["--batch", "--skip-column-names"]
+    end
+  end
+
+  command = Shellwords.shelljoin(command.map(&:to_s) + ARGV)
 
   case options[:mode]
   when :preview
