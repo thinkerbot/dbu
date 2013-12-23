@@ -29,9 +29,12 @@ options:
       options[:environment] = value
     end
 
-
     opts.on("-F", "--field-sep FIELD_SEP", "field separator for -s (#{options[:field_sep].inspect})") do |value|
       options[:field_sep] = value
+    end
+
+    opts.on("-H", "--[no-]headers", "print headers") do |value|
+      options[:headers] = value
     end
 
     opts.on("--debug", "enable debugging") do
@@ -82,6 +85,16 @@ options:
         raise "mysql does not support setting a non-tab field sep"
       end
       command += ["--batch", "--skip-column-names"]
+    end
+  end
+
+  if options[:headers]
+    case db
+    when 'postgres'
+      command -= ["--tuples-only"]
+      command += ["--pset=footer=off"]
+    when 'mysql'
+      command += ["--column-names"]
     end
   end
 

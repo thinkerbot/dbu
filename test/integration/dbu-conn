@@ -17,6 +17,14 @@ printf "select 1,'a'" | dbu conn | assert_output "\
 "
 }
 
+test_dbu_conn_streams_from_postgres_with_headers () {
+export DBU_ENVIRONMENT=postgres
+printf "select 1 as key, 'a' as value" | dbu conn -H | assert_output "\
+key	value
+1	a
+"
+}
+
 #
 # mysql
 #
@@ -29,6 +37,14 @@ printf "show variables like 'version';" | dbu conn | grep -q "version"
 test_dbu_conn_streams_from_mysql () {
 export DBU_ENVIRONMENT=mysql
 printf "select 1,'a'" | dbu conn | assert_output "\
+1	a
+"
+}
+
+test_dbu_conn_streams_from_mysql_with_headers () {
+export DBU_ENVIRONMENT=mysql
+printf "select 1 as 'key', 'a' as 'value'" | dbu conn -H | assert_output "\
+key	value
 1	a
 "
 }
