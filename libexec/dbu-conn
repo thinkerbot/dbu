@@ -98,6 +98,13 @@ options:
     end
   end
 
+  if options[:mode] == 'preview'
+    case db
+    when 'mysql'
+      command += ["-p"]
+    end
+  end
+
   command = Shellwords.shelljoin(command.map(&:to_s) + ARGV)
 
   case options[:mode]
