@@ -1,0 +1,31 @@
+#!/bin/bash
+. test/integration/helper
+
+test_dbu_conn_connects_to_postgres () {
+export DBU_ENVIRONMENT=postgres
+printf "select version();" | dbu conn | grep -q "PostgreSQL"
+}
+
+test_dbu_conn_connects_to_mysql () {
+export DBU_ENVIRONMENT=mysql
+printf "show variables like 'version';" | dbu conn | grep -q "version"
+}
+
+#
+# -h
+#
+
+test_dbu_conn_prints_help () {
+dbu conn -h | grep -q "usage: dbu conn"
+}
+
+#
+# -p
+#
+
+test_dbu_conn_p_prints_preview_command () {
+export DBU_ENVIRONMENT=postgres
+dbu conn -p | grep -q "psql -h"
+}
+
+. ts
