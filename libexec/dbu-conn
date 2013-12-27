@@ -63,54 +63,20 @@ options:
   end.parse!
 
   config = Dbu.load_db_config(options)
-  db = config['dbu']
+  adapter = config.adapter
 
-  case db
-  when 'postgres'
-    command = ["psql", "-h", config['host'], "-p", config['port'], "-U", config['username'], "-d", config['database']]
-    ENV["PGPASSWORD"] = config['password'] if config['password']
-  when 'mysql'
-    command = ["mysql", "-h", config['host'], "-P", config['port'], "-u", config['username'], config['database']]
-    ENV["MYSQL_PWD"] = config['password'] if config['password']
-  else
-    raise "unsupported dbu database: #{db.inspect}"
-  end
+  args = adapter.command_args(options)
+  env  = adapter.command_env
 
-  if options[:stream]
-    case db
-    when 'postgres'
-      command += ["--no-align", "--field-separator", options[:field_sep], "--tuples-only", "--quiet"]
-    when 'mysql'
-      if options[:field_sep] != "\t"
-        raise "mysql does not support setting a non-tab field sep"
-      end
-      command += ["--batch", "--skip-column-names"]
-    end
-  end
-
-  if options[:headers]
-    case db
-    when 'postgres'
-      command -= ["--tuples-only"]
-      command += ["--pset=footer=off"]
-    when 'mysql'
-      command += ["--column-names"]
-    end
-  end
-
-  if options[:mode] == 'preview'
-    case db
-    when 'mysql'
-      command += ["-p"]
-    end
-  end
-
-  command = Shellwords.shelljoin(command.map(&:to_s) + ARGV)
+  command = Shellwords.shelljoin(args.map(&:to_s) + ARGV)
 
   case options[:mode]
   when :preview
     puts command
   else
+    env.each_pair do |key, value|
+      ENV[key] = value
+    end
     exec command
   end
 
