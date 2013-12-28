@@ -1,22 +1,16 @@
 #!/usr/bin/env ruby
 begin
   require 'dbu'
-  require 'shellwords'
 
   options = Dbu.options(
-    :mode => :exec,
-    :opts => [],
+    :mode => :query,
     :field_sep => "\t",
-    :stream => !$stdin.tty?
   )
   OptionParser.new do |opts|
     opts.banner = %{
-usage: dbu conn [options] -- [ARGS...]
+usage: dbu query [options] THING ARGS...
 
-  Connect to specified database using the dbu config file and provide the user
-  a prompt. If stdin is not a tty then the connection will accept sql and
-  format the output as a stream (ie no table decorations and non-result
-  output).
+  Query things out of the database
 
 options:
 }.lstrip
@@ -48,12 +42,12 @@ options:
       exit
     end
 
-    opts.on("-p", "--preview", "preview command") do
-      options[:mode] = :preview
+    opts.on("-l", "--list", "list queries") do
+      options[:mode] = :list
     end
 
-    opts.on("-s", "--[no-]stream", "stream results") do |value|
-      options[:stream] = value
+    opts.on("-p", "--preview", "preview command") do
+      options[:mode] = :preview
     end
 
     opts.on("-v", "--verbose", "verbose output") do
@@ -67,22 +61,26 @@ options:
   end.parse!
   Dbu.setup(options)
 
+  name, *args = ARGV.dup; ARGV.clear
+
   config = Dbu.load_db_config(options)
-  adapter = config.adapter
+  adapter  = config.adapter
+  registry = config.registry
 
-  args = adapter.command_args(options)
-  env  = adapter.command_env
+  key, sql, signature = registry.lookup(name, args)
 
-  command = Shellwords.shelljoin(args.map(&:to_s) + ARGV)
-
-  case options[:mode]
-  when :preview
-    puts command
-  else
-    env.each_pair do |key, value|
-      ENV[key] = value
+  mode = options[:mode]
+  case mode
+  when :query
+    adapter.prepare(key, sql)
+    adapter.each_line(key, args, options) do |line|
+      puts line
     end
-    exec command
+  when :preview
+    puts sql
+    puts args.inspect
+  else
+    raise "invalid mode: #{mode.inspect}"
   end
 
 rescue Interrupt
