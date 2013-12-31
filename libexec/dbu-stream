@@ -1,22 +1,17 @@
 #!/usr/bin/env ruby
 begin
   require 'dbu'
-  require 'shellwords'
 
   options = Dbu.options(
-    :mode => :exec,
-    :opts => [],
+    :mode => :query,
     :field_sep => "\t",
-    :stream => !$stdin.tty?
+    :input_format => :line
   )
   OptionParser.new do |opts|
     opts.banner = %{
-usage: dbu conn [options] -- [ARGS...]
+usage: dbu stream [options] QUERY_NAME FILES...
 
-  Connect to specified database using the dbu config file and provide the user
-  a prompt. If stdin is not a tty then the connection will accept sql and
-  format the output as a stream (ie no table decorations and non-result
-  output).
+  Query things out of the database
 
 options:
 }.lstrip
@@ -48,12 +43,12 @@ options:
       exit
     end
 
-    opts.on("-p", "--preview", "preview command") do
-      options[:mode] = :preview
+    opts.on("-l", "--list", "list queries") do
+      options[:mode] = :list
     end
 
-    opts.on("-s", "--[no-]stream", "stream results") do |value|
-      options[:stream] = value
+    opts.on("-p", "--preview", "preview command") do
+      options[:mode] = :preview
     end
 
     opts.on("-v", "--verbose", "verbose output") do
@@ -67,22 +62,54 @@ options:
   end.parse!
   Dbu.setup(options)
 
-  config  = Dbu.init_config(options)
-  adapter = config.adapter
+  config    = Dbu.init_config(options)
+  adapter   = config.adapter
+  registry  = config.registry
 
-  args = adapter.command_args(options)
-  env  = adapter.command_env
+  field_sep = options[:field_sep]
+  mode      = options[:mode]
+  headers   = options[:headers]
 
-  command = Shellwords.shelljoin(args.map(&:to_s) + ARGV)
-
-  case options[:mode]
-  when :preview
-    puts command
-  else
-    env.each_pair do |key, value|
-      ENV[key] = value
+  if mode == :list
+    registry.populate
+    summaries = registry.summaries
+    max_len   = summaries.keys.map(&:length).max
+    format    = "  %-#{max_len}s  %s"
+    summaries.keys.sort.each do |key|
+      puts format % [key, summaries[key]]
     end
-    exec command
+    exit
+  end
+
+  name = ARGV.shift
+  case mode
+  when :query
+
+    query.bind(adapter)
+    while line = ARGF.gets
+      args = parser.parse(line)
+      rows = query.exec(args)
+
+      if headers
+        puts adapter.last_headers.join(field_sep)
+        headers = false
+      end
+
+      rows.each do |row|
+        puts row.join(field_sep)
+      end
+    end
+    query.unbind
+
+  when :preview
+    puts query.preview
+    while line = ARGF.gets
+      args = parser.parse(line)
+      puts args.inspect
+    end
+
+  else
+    raise "invalid mode: #{mode.inspect}"
   end
 
 rescue Interrupt

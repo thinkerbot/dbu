@@ -1,8 +1,14 @@
+require 'mysql'
 require 'dbu/adapter'
 
 module Dbu
   module Adapters
     class Mysql < Adapter
+      def initialize(*args)
+        super
+        @prepared_statements = {}
+      end
+
       def command_args(options = {})
         command = ["mysql", "-h", config.host, "-P", config.port, "-u", config.username, config.database]
 
@@ -28,6 +34,37 @@ module Dbu
         env = super
         env["MYSQL_PWD"] = config.password if config.password
         env
+      end
+
+      def new_conn
+        ::Mysql.connect(config.host, config.username, config.password, config.database, config.port)
+      end
+
+      def prepare(name, sql)
+        super
+        @prepared_statements[name] = conn.prepare(sql)
+      end
+
+      def exec_prepared(name, args)
+        super
+        statement = @prepared_statements[name] or raise "no such prepared statement: #{name.inspect}"
+        @last_result = statement.execute(*args)
+        @last_result.enum_for(:each)
+      end
+
+      def exec(sql)
+        super
+        @last_result = conn.query(sql)
+        @last_result.enum_for(:each)
+      end
+
+      def last_headers
+        last_result.fields.map(&:name)
+      end
+
+      def deallocate(name)
+        super
+        @prepared_statements.delete(name)
       end
     end
   end

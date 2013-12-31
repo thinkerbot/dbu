@@ -1,9 +1,15 @@
+require 'dbu/registry'
+
 module Dbu
   class Config
     attr_reader :options
 
     def initialize(options)
       @options = options
+    end
+
+    def [](key)
+      options[key]
     end
 
     def adapter_name
@@ -45,6 +51,15 @@ module Dbu
 
     def password
       options['password']
+    end
+
+    def path
+      path = options['dbu_path'] || File.expand_path('db/dbu')
+      path.to_s.split(':') + [File.expand_path("../../../db/#{adapter_name}", __FILE__)]
+    end
+
+    def registry
+      Registry.new(path)
     end
   end
 end

@@ -1,0 +1,12 @@
+#!/bin/bash
+. test/integration/helper
+
+#
+# -h
+#
+
+test_dbu_stream_prints_help () {
+dbu stream -h | grep -q "usage: dbu stream"
+}
+
+. ts

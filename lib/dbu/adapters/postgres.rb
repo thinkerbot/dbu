@@ -1,3 +1,4 @@
+require 'pg'
 require 'dbu/adapter'
 
 module Dbu
@@ -22,6 +23,51 @@ module Dbu
         env = super
         env["PGPASSWORD"] = config.password if config.password
         env
+      end
+
+      def search_path
+        config[:search_path]
+      end
+
+      def new_conn
+        conn = PG::Connection.open(
+          :host     => config.host,
+          :dbname   => config.database,
+          :port     => config.port,
+          :user     => config.username,
+          :password => config.password
+        )
+        if search_path
+          conn.exec("set search_path to #{search_path}")
+        end
+        conn
+      end
+
+      def prepare(name, sql)
+        super
+        conn.prepare(name, sql)
+      end
+
+      def exec_prepared(name, args)
+        super
+        @last_result = conn.exec_prepared(name, args)
+        @last_result.check
+        @last_result.enum_for(:each_row)
+      end
+
+      def exec(sql)
+        super
+        @last_result = conn.exec(sql)
+        @last_result.check
+        @last_result.enum_for(:each_row)
+      end
+
+      def last_headers
+        last_result.fields
+      end
+
+      def deallocate(name)
+        super
       end
     end
   end
