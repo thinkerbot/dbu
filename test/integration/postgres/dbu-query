@@ -5,4 +5,26 @@ setup () {
 export DBU_ENVIRONMENT=postgres
 }
 
+test_dbu_query_prints_tables () {
+dbu conn <<SQL
+drop table if exists example;
+create table example (id int);
+SQL
+
+dbu query tables | assert_output "\
+example
+"
+}
+
+test_dbu_query_prints_columns_for_table () {
+dbu conn <<SQL
+drop table if exists example;
+create table example (id int);
+SQL
+
+dbu query columns example | assert_output "\
+id	integer
+"
+}
+
 . ts
