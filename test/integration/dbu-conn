@@ -2,54 +2,6 @@
 . test/integration/helper
 
 #
-# postgres
-#
-
-test_dbu_conn_connects_to_postgres () {
-export DBU_ENVIRONMENT=postgres
-printf "select version();" | dbu conn | grep -q "PostgreSQL"
-}
-
-test_dbu_conn_streams_from_postgres () {
-export DBU_ENVIRONMENT=postgres
-printf "select 1,'a'" | dbu conn | assert_output "\
-1	a
-"
-}
-
-test_dbu_conn_streams_from_postgres_with_headers () {
-export DBU_ENVIRONMENT=postgres
-printf "select 1 as key, 'a' as value" | dbu conn -H | assert_output "\
-key	value
-1	a
-"
-}
-
-#
-# mysql
-#
-
-test_dbu_conn_connects_to_mysql () {
-export DBU_ENVIRONMENT=mysql
-printf "show variables like 'version';" | dbu conn | grep -q "version"
-}
-
-test_dbu_conn_streams_from_mysql () {
-export DBU_ENVIRONMENT=mysql
-printf "select 1,'a'" | dbu conn | assert_output "\
-1	a
-"
-}
-
-test_dbu_conn_streams_from_mysql_with_headers () {
-export DBU_ENVIRONMENT=mysql
-printf "select 1 as 'key', 'a' as 'value'" | dbu conn -H | assert_output "\
-key	value
-1	a
-"
-}
-
-#
 # -c
 #
 
@@ -66,15 +18,6 @@ dbu conn -p -c "$config_file" -e example | grep -q "psql -h"
 
 test_dbu_conn_prints_help () {
 dbu conn -h | grep -q "usage: dbu conn"
-}
-
-#
-# -p
-#
-
-test_dbu_conn_p_prints_preview_command () {
-export DBU_ENVIRONMENT=postgres
-dbu conn -p | grep -q "psql -h"
 }
 
 . ts

@@ -1,0 +1,8 @@
+#!/bin/bash
+. test/integration/helper
+
+setup () {
+export DBU_ENVIRONMENT=postgres
+}
+
+. ts

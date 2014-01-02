@@ -1,0 +1,37 @@
+#!/bin/bash
+. test/integration/helper
+
+setup () {
+export DBU_ENVIRONMENT=mysql
+}
+
+#
+# mysql
+#
+
+test_dbu_conn_connects_to_mysql () {
+printf "show variables like 'version';" | dbu conn | grep -q "version"
+}
+
+test_dbu_conn_streams_from_mysql () {
+printf "select 1,'a'" | dbu conn | assert_output "\
+1	a
+"
+}
+
+test_dbu_conn_streams_from_mysql_with_headers () {
+printf "select 1 as 'key', 'a' as 'value'" | dbu conn -H | assert_output "\
+key	value
+1	a
+"
+}
+
+#
+# -p
+#
+
+test_dbu_conn_p_prints_preview_command_for_mysql () {
+dbu conn -p | grep -q "mysql "
+}
+
+. ts
