@@ -48,6 +48,10 @@ options:
       exit
     end
 
+    opts.on("-i", "--irb", "start an irb session with connection") do
+      options[:mode] = :irb
+    end
+
     opts.on("-p", "--preview", "preview command") do
       options[:mode] = :preview
     end
@@ -78,6 +82,12 @@ options:
   case options[:mode]
   when :preview
     puts command
+  when :irb
+    require 'irb'
+    def adapter; @adapter; end
+    def adapter=(value); @adapter = value; end
+    self.adapter = adapter
+    IRB.start
   else
     env.each_pair do |key, value|
       ENV[key] = value
