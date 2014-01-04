@@ -25,10 +25,6 @@ module Dbu
         env
       end
 
-      def search_path
-        config[:search_path]
-      end
-
       def new_conn
         conn = PG::Connection.open(
           :host     => config.host,
@@ -37,9 +33,6 @@ module Dbu
           :user     => config.username,
           :password => config.password
         )
-        if search_path
-          conn.exec("set search_path to #{search_path}")
-        end
         conn
       end
 
