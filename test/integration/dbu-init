@@ -1,8 +1,8 @@
 #!/bin/bash
 . test/integration/helper
 
-test_dbu_db_init_copies_prototype_to_dir () {
-dbu db init "$ts_test_dir"
+test_dbu_init_copies_prototype_to_dir () {
+dbu init "$ts_test_dir"
 find "$ts_test_dir" -type f | assert_output "\
 $ts_test_dir/config
 $ts_test_dir/config.yml
@@ -10,10 +10,10 @@ $ts_test_dir/sql/00_example.sql
 "
 }
 
-test_dbu_db_init_does_nothing_if_dir_exists () {
+test_dbu_init_does_nothing_if_dir_exists () {
 mkdir -p "$ts_test_dir"
 touch "$ts_test_dir/file"
-dbu db init "$ts_test_dir"
+dbu init "$ts_test_dir"
 [ -e "$ts_test_dir/file" ] && [ ! -e "$ts_test_dir/config" ]
 }
 
@@ -21,10 +21,10 @@ dbu db init "$ts_test_dir"
 # -f
 #
 
-test_dbu_db_init_f_removes_existing_dir () {
+test_dbu_init_f_removes_existing_dir () {
 mkdir -p "$ts_test_dir"
 touch "$ts_test_dir/file"
-dbu db init -f "$ts_test_dir"
+dbu init -f "$ts_test_dir"
 [ ! -e "$ts_test_dir/file" ] && [ -e "$ts_test_dir/config" ]
 }
 
@@ -32,12 +32,12 @@ dbu db init -f "$ts_test_dir"
 # -p
 #
 
-test_dbu_db_init_p_sets_prototype_dir () {
+test_dbu_init_p_sets_prototype_dir () {
 mkdir -p "$ts_test_dir/a/sql"
 printf "a: b\n" > "$ts_test_dir/a/config.yml"
 printf "select * from table;\n" > "$ts_test_dir/a/sql/00.sql"
 
-dbu db init -p "$ts_test_dir/a" "$ts_test_dir/b"
+dbu init -p "$ts_test_dir/a" "$ts_test_dir/b"
 cat "$ts_test_dir/b/config.yml" "$ts_test_dir/b/sql/00.sql" | assert_output "\
 a: b
 select * from table;
@@ -48,8 +48,8 @@ select * from table;
 # -l
 #
 
-test_dbu_db_init_l_symlinks_config_and_sql_into_dir () {
-dbu db init -l "$ts_test_dir"
+test_dbu_init_l_symlinks_config_and_sql_into_dir () {
+dbu init -l "$ts_test_dir"
 cat <(find "$ts_test_dir" -type f) <(echo ---) <(find "$ts_test_dir" -type l) | assert_output "\
 $ts_test_dir/config.yml
 ---
@@ -62,8 +62,8 @@ $ts_test_dir/sql
 # -h
 #
 
-test_dbu_db_init_prints_help () {
-dbu db init -h | grep -q "usage: dbu db init"
+test_dbu_init_prints_help () {
+dbu init -h | grep -q "usage: dbu init"
 }
 
 . ts

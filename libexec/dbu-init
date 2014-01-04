@@ -11,7 +11,7 @@ begin
   )
   OptionParser.new do |opts|
     opts.banner = %{
-usage: dbu db init [options] TARGET_DIR...
+usage: dbu init [options] TARGET_DIR...
 
   Initialize a dbu database dir (for use by `dbu db setup`).
 

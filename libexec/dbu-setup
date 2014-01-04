@@ -11,7 +11,7 @@ begin
   )
   OptionParser.new do |opts|
     opts.banner = %{
-usage: dbu db setup [options] SETUP_DIR...
+usage: dbu setup [options] SETUP_DIR...
 
   Translate and a set of setup files.
 
