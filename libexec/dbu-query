@@ -70,11 +70,11 @@ options:
 
   if mode == :list
     registry.populate
-    summaries = registry.summaries
-    max_len   = summaries.keys.map(&:length).max
+    queries = registry.queries
+    max_len   = queries.keys.map(&:length).max
     format    = "  %-#{max_len}s  %s"
-    summaries.keys.sort.each do |key|
-      puts format % [key, summaries[key]]
+    queries.keys.sort.each do |key|
+      puts format % [key, queries[key].desc]
     end
     exit
   end

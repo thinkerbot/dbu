@@ -58,6 +58,14 @@ module Dbu
         @last_result.enum_for(:each)
       end
 
+      def escape(str)
+        conn.escape_string(str)
+      end
+
+      def escape_literal(str)
+        "'#{escape(str)}'"
+      end
+
       def last_headers
         last_result.fields.map(&:name)
       end

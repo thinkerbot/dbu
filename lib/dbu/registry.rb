@@ -1,43 +1,14 @@
-require 'dbu/queries/interpolated'
-require 'dbu/queries/prepared'
+require 'dbu/query_builder'
 
 module Dbu
-  class Builder
-    attr_reader :name
-    attr_reader :registry
-
-    def initialize(name, registry)
-      @name = name
-      @registry = registry
-    end
-
-    def desc(str)
-      registry.summaries[name] = str
-    end
-
-    def query(*args)
-      args.unshift(args.pop)
-      query = Queries::Interpolated.new(name, *args)
-      registry.register(query)
-    end
-
-    def prepare(*args)
-      args.unshift(args.pop)
-      query = Queries::Prepared.new(name, *args)
-      registry.register(query)
-    end
-  end
-
   class Registry
     attr_reader :path
     attr_reader :queries
-    attr_reader :summaries
     attr_reader :logger
 
     def initialize(path)
       @path = path
       @queries = {}
-      @summaries = {}
       @logger = Logging.logger[self]
     end
 
@@ -58,10 +29,8 @@ module Dbu
       path.each do |path_prefix|
         query_files = Dir.glob("#{path_prefix}/*.rb")
         query_files.each do |query_file|
-          name = File.basename(query_file, ".rb")
-          query_text = File.read(query_file)
           logger.debug "build #{query_file}"
-          Builder.new(name, self).instance_eval(query_text)
+          register QueryBuilder.build_from(query_file)
         end
       end
     end
@@ -71,9 +40,8 @@ module Dbu
 
       unless queries.has_key?(name)
         if query_file = find_query_file(name)
-          query_text = File.read(query_file)
           logger.debug "build #{query_file}"
-          Builder.new(name, self).instance_eval(query_text)
+          register QueryBuilder.build_from(query_file)
         end
       end
 

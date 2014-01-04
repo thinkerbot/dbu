@@ -1,12 +1,14 @@
+require 'logging'
+
 module Dbu
   class Adapter
     attr_reader :config
     attr_reader :logger
     attr_reader :last_result
 
-    def initialize(config)
+    def initialize(config = {}, logger = nil)
       @config = config
-      @logger = Logging.logger[self]
+      @logger = logger || Logging.logger[self]
       @last_result = nil
     end
 
@@ -40,6 +42,14 @@ module Dbu
 
     def exec(sql)
       logger.info { "exec #{sql.inspect}" }
+    end
+
+    def escape(str)
+      str
+    end
+
+    def escape_literal(str)
+      "'#{str.gsub("'", "''")}'"
     end
 
     def last_headers

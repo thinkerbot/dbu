@@ -11,9 +11,7 @@ drop table if exists example;
 create table example (id int);
 SQL
 
-dbu query tables | assert_output "\
-example
-"
+dbu query tables | grep -q example
 }
 
 test_dbu_query_prints_columns_for_table () {

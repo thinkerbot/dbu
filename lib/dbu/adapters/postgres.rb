@@ -66,6 +66,14 @@ module Dbu
         last_result.fields
       end
 
+      def escape(str)
+        conn.escape(str)
+      end
+
+      def escape_literal(str)
+        conn.escape_literal(str)
+      end
+
       def deallocate(name)
         super
       end
