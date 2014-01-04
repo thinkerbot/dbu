@@ -10,6 +10,14 @@ module Dbu
 
   module_function
 
+  def project_dir
+    File.expand_path("../..", __FILE__)
+  end
+
+  def prototype_dir
+    File.expand_path("db/prototype", project_dir)
+  end
+
   def default_log_level
     LOG_LEVELS.index('warn')
   end
