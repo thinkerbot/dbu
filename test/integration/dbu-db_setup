@@ -4,17 +4,16 @@
 setup () {
 config_exe="$ts_test_dir/config"
 config_file="$ts_test_dir/config.yml"
-sql_dir="$ts_test_dir/sql"
-mkdir -p "$sql_dir"
+mkdir -p "$ts_test_dir"
 }
 
 #
 # usage
 #
 
-test_dbu_db_setup_prints_sql_files_in_order () {
-printf "a\n" > "$sql_dir/a"
-printf "b\n" > "$sql_dir/b"
+test_dbu_db_setup_prints_sql_files_in_lexical_order () {
+printf "a\n" > "$ts_test_dir/a.sql"
+printf "b\n" > "$ts_test_dir/b.sql"
 dbu db setup "$ts_test_dir" | assert_output "\
 a
 b
@@ -26,7 +25,7 @@ cat > "$config_file" <<DOC
 key: value
 DOC
 
-cat > "$sql_dir/a" <<DOC
+cat > "$ts_test_dir/a.sql" <<DOC
 key <%= key %>
 DOC
 
@@ -46,7 +45,7 @@ sed -e 's/value/VALUE/'
 DOC
 chmod +x "$config_exe"
 
-cat > "$sql_dir/a" <<DOC
+cat > "$ts_test_dir/a.sql" <<DOC
 key <%= key %>
 DOC
 
@@ -68,13 +67,13 @@ dbu db setup -h | grep -q "usage: dbu db setup"
 #
 
 test_dbu_db_setup_only_prints_files_newer_than_z () {
-printf "a\n" > "$sql_dir/a"
-printf "b\n" > "$sql_dir/b"
-printf "c\n" > "$sql_dir/c"
+printf "a\n" > "$ts_test_dir/a.sql"
+printf "b\n" > "$ts_test_dir/b.sql"
+printf "c\n" > "$ts_test_dir/c.sql"
 
-touch -t "$(date -r 1 "+%Y%m%d%H%M.%S")" "$sql_dir/a"
-touch -t "$(date -r 2 "+%Y%m%d%H%M.%S")" "$sql_dir/b"
-touch -t "$(date -r 3 "+%Y%m%d%H%M.%S")" "$sql_dir/c"
+touch -t "$(date -r 1 "+%Y%m%d%H%M.%S")" "$ts_test_dir/a.sql"
+touch -t "$(date -r 2 "+%Y%m%d%H%M.%S")" "$ts_test_dir/b.sql"
+touch -t "$(date -r 3 "+%Y%m%d%H%M.%S")" "$ts_test_dir/c.sql"
 
 dbu db setup -z "$(date -r 1 "+%Y-%m-%d %H:%M:%S")" "$ts_test_dir" | assert_output "\
 b
@@ -83,16 +82,16 @@ c
 }
 
 test_dbu_db_setup_z_accepts_reference_file () {
-printf "a\n" > "$sql_dir/a"
-printf "b\n" > "$sql_dir/b"
-printf "c\n" > "$sql_dir/c"
+printf "a\n" > "$ts_test_dir/a.sql"
+printf "b\n" > "$ts_test_dir/b.sql"
+printf "c\n" > "$ts_test_dir/c.sql"
 
-touch -t "$(date -r 1 "+%Y%m%d%H%M.%S")" "$sql_dir/a"
-touch -t "$(date -r 2 "+%Y%m%d%H%M.%S")" "$sql_dir/b"
-touch -t "$(date -r 3 "+%Y%m%d%H%M.%S")" "$sql_dir/c"
-touch -t "$(date -r 1 "+%Y%m%d%H%M.%S")" "$sql_dir/d"
+touch -t "$(date -r 1 "+%Y%m%d%H%M.%S")" "$ts_test_dir/a.sql"
+touch -t "$(date -r 2 "+%Y%m%d%H%M.%S")" "$ts_test_dir/b.sql"
+touch -t "$(date -r 3 "+%Y%m%d%H%M.%S")" "$ts_test_dir/c.sql"
+touch -t "$(date -r 1 "+%Y%m%d%H%M.%S")" "$ts_test_dir/d"
 
-dbu db setup -z "$sql_dir/d" "$ts_test_dir" | assert_output "\
+dbu db setup -z "$ts_test_dir/d" "$ts_test_dir" | assert_output "\
 b
 c
 "

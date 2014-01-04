@@ -51,7 +51,7 @@ options:
   target_dirs.each do |target_dir|
     config_file = File.join(target_dir, "config.yml")
     config_exe  = File.join(target_dir, "config")
-    sql_files = Dir.glob(File.join(target_dir, "sql/*"))
+    sql_files = Dir.glob(File.join(target_dir, "**/*.sql"))
 
     if cutoff
       sql_files.select! do |sql_file|
@@ -77,7 +77,9 @@ options:
     context = OpenStruct.new(configs)
     context = context.send(:instance_eval, "binding")
 
-    sql_files.sort.each do |sql_file|
+    sql_files.sort_by do |sql_file|
+      File.basename(sql_file)
+    end.each do |sql_file|
       template = File.read(sql_file)
       puts ERB.new(template).result(context)
     end
