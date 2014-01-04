@@ -50,13 +50,22 @@ service postgresql restart
 
 # Create target database
 sudo -u postgres createuser --superuser vagrant
+sudo -u postgres createdb vagrant
 sudo -u postgres expect -f - <<DOC
-spawn psql
-expect "postgres=#" { send "\\\\password vagrant\r" }
+spawn psql -U vagrant
+expect "vagrant=#" { send "\\\\password vagrant\r" }
 expect "Enter new password:" { send "vagrant\r" }
 expect "Enter it again:" { send "vagrant\r" }
 DOC
-sudo -u postgres createdb vagrant
+
+sudo -u postgres createuser --superuser vagrant_test
+sudo -u postgres createdb vagrant_test
+sudo -u postgres expect -f - <<DOC
+spawn psql -U vagrant_test
+expect "vagrant_test=#" { send "\\\\password vagrant_test\r" }
+expect "Enter new password:" { send "vagrant_test\r" }
+expect "Enter it again:" { send "vagrant_test\r" }
+DOC
 
 #
 # Install mysql
@@ -74,4 +83,8 @@ mysql -uroot -proot <<DOC
 CREATE USER 'vagrant'@'%' IDENTIFIED BY 'vagrant';
 GRANT ALL PRIVILEGES ON *.* TO 'vagrant'@'%' WITH GRANT OPTION;
 CREATE DATABASE vagrant;
+
+CREATE USER 'vagrant_test'@'%' IDENTIFIED BY 'vagrant_test';
+GRANT ALL PRIVILEGES ON *.* TO 'vagrant_test'@'%' WITH GRANT OPTION;
+CREATE DATABASE vagrant_test;
 DOC

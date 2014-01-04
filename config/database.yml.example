@@ -6,6 +6,14 @@ postgres: &default
   username: vagrant
   password: vagrant
 
+postgres_test: &default_test
+  dbu: postgres
+  host: localhost
+  database: vagrant_test
+  port: 5433
+  username: vagrant_test
+  password: vagrant_test
+
 mysql:
   dbu: mysql
   host: 127.0.0.1
@@ -14,4 +22,13 @@ mysql:
   username: vagrant
   password: vagrant
 
+mysql_test:
+  dbu: mysql
+  host: 127.0.0.1
+  database: vagrant_test
+  port: 3333
+  username: vagrant_test
+  password: vagrant_test
+
 development: *default
+test: *default_test
