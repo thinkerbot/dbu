@@ -3,9 +3,6 @@ create table kv (
   k varchar,
   v varchar
 );
-insert into kv values ('a', '1');
-insert into kv values ('b', '2');
-insert into kv values ('c', '3');
 
 drop table if exists datatypes;
 create table datatypes (
