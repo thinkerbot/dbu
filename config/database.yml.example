@@ -9,7 +9,7 @@ postgres: &default
 postgres_test: &default_test
   dbu: postgres
   host: localhost
-  database: vagrant_test
+  database: vagrant
   port: 5433
   username: vagrant_test
   password: vagrant_test

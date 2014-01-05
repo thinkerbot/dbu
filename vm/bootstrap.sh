@@ -49,20 +49,20 @@ EOS
 service postgresql restart
 
 # Create target database
-sudo -u postgres createuser --superuser vagrant
 sudo -u postgres createdb vagrant
+
+sudo -u postgres createuser --superuser vagrant
 sudo -u postgres expect -f - <<DOC
-spawn psql -U vagrant
+spawn psql -U vagrant -d vagrant
 expect "vagrant=#" { send "\\\\password vagrant\r" }
 expect "Enter new password:" { send "vagrant\r" }
 expect "Enter it again:" { send "vagrant\r" }
 DOC
 
 sudo -u postgres createuser --superuser vagrant_test
-sudo -u postgres createdb vagrant_test
 sudo -u postgres expect -f - <<DOC
-spawn psql -U vagrant_test
-expect "vagrant_test=#" { send "\\\\password vagrant_test\r" }
+spawn psql -U vagrant_test -d vagrant
+expect "vagrant=#" { send "\\\\password vagrant_test\r" }
 expect "Enter new password:" { send "vagrant_test\r" }
 expect "Enter it again:" { send "vagrant_test\r" }
 DOC

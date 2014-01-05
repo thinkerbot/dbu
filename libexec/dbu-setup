@@ -1,0 +1,96 @@
+#!/usr/bin/env ruby
+begin
+  require 'dbu'
+  require 'erb'
+  require 'yaml'
+  require 'ostruct'
+
+  options = Dbu.options(
+    :mode => :exec,
+    :cutoff => nil
+  )
+  OptionParser.new do |opts|
+    opts.banner = %{
+usage: dbu setup [options] SETUP_DIR...
+
+  Translate and a set of setup files.
+
+options:
+}.lstrip
+
+    opts.on("--debug", "enable debugging") do
+      $DEBUG = true
+    end
+
+    opts.on("-h", "--help", "print this help") do
+      puts opts
+      puts
+      puts Dbu.version
+      exit
+    end
+
+    opts.on("--version", "print version information") do |node|
+      puts Dbu.version
+      exit
+    end
+
+    opts.on("-z", "--time-cond COND", "only translate files newer than cond") do |value|
+      options[:cutoff] = \
+      if File.exists?(value)
+        File.mtime(value)
+      else
+        Time.parse(value)
+      end
+    end
+  end.parse!
+  Dbu.setup(options)
+
+  target_dirs = ARGV.dup; ARGV.clear
+  cutoff = options[:cutoff]
+
+  target_dirs.each do |target_dir|
+    config_file = File.join(target_dir, "config.yml")
+    config_exe  = File.join(target_dir, "config")
+    sql_files = Dir.glob(File.join(target_dir, "**/*.sql"))
+
+    if cutoff
+      sql_files.select! do |sql_file|
+        File.mtime(sql_file) > cutoff
+      end
+      next if sql_files.empty?
+    end
+
+    config_text = ""
+    if File.exists?(config_file)
+      config_text = File.read(config_file)
+    end
+
+    if File.exists?(config_exe)
+      IO.popen(config_exe, "r+") do |io|
+        io.puts config_text
+        io.close_write
+        config_text = io.read
+      end
+    end
+
+    configs = YAML.load(config_text) || {}
+    context = OpenStruct.new(configs)
+    context = context.send(:instance_eval, "binding")
+
+    sql_files.sort_by do |sql_file|
+      File.basename(sql_file)
+    end.each do |sql_file|
+      template = File.read(sql_file)
+      puts ERB.new(template).result(context)
+    end
+  end
+
+rescue Interrupt
+  exit 130
+rescue Errno::EPIPE
+  exit 0
+rescue
+  raise if $DEBUG
+  $stderr.puts $!.message
+  exit 1
+end

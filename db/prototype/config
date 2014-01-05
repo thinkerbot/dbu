@@ -1,0 +1,7 @@
+#!/usr/bin/env ruby
+
+# Calculate configs from those in the config.yml file using this executable
+# (which can be rewritten in another language).  The config.yml contents will
+# be on stdin and the modified configs should be printed to stdout as YAML.
+# Configs on stdout will be available in all setup/teardown/query templates.
+puts $stdin.read

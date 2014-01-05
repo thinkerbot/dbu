@@ -1,0 +1,100 @@
+#!/usr/bin/env ruby
+begin
+  require 'dbu'
+  require 'fileutils'
+  include FileUtils::Verbose
+
+  options = Dbu.options(
+    :mode  => :copy,
+    :force => false,
+    :prototype_dir => nil
+  )
+  OptionParser.new do |opts|
+    opts.banner = %{
+usage: dbu init [options] TARGET_DIR...
+
+  Initialize a dbu database dir (for use by `dbu db setup`).
+
+options:
+}.lstrip
+
+    opts.on("--debug", "enable debugging") do
+      $DEBUG = true
+    end
+
+    opts.on("-f", "--force", "remove existing target dir") do
+      options[:force] = true
+    end
+
+    opts.on("-h", "--help", "print this help") do
+      puts opts
+      puts
+      puts Dbu.version
+      exit
+    end
+
+    opts.on("-l", "--link", "symlink to prototype") do
+      options[:mode] = :link
+    end
+
+    opts.on("-p", "--prototype-dir DIR", "prototype dir") do |value|
+      options[:prototype_dir] = value
+    end
+
+    opts.on("--version", "print version information") do |node|
+      puts Dbu.version
+      exit
+    end
+  end.parse!
+
+  target_dirs = ARGV.dup; ARGV.clear
+  prototype_dir = options[:prototype_dir] || Dbu.prototype_dir
+
+  mode = options[:mode]
+  copy_only_extnames = [".yml"]
+
+  prototype_contents = Dir.glob(File.join(prototype_dir, "*"))
+  prototype_contents.map! do |path|
+    if copy_only_extnames.include? File.extname(path)
+      [:copy, path]
+    else
+      [mode, path]
+    end
+  end
+
+  target_dirs.each do |target_dir|
+    if File.exists?(target_dir)
+      if options[:force]
+        rm_r(target_dir)
+      else
+        raise "target dir already exists: #{target_dir.inspect}"
+      end
+    end
+
+    mkdir_p(target_dir)
+
+    prototype_contents.each do |mode, source|
+      target = source.sub(prototype_dir, target_dir)
+
+      case mode
+      when :copy
+        if File.directory?(source)
+          cp_r(source, target)
+        else
+          cp(source, target)
+        end
+      when :link
+        ln_s(source, target)
+      end
+    end
+  end
+
+rescue Interrupt
+  exit 130
+rescue Errno::EPIPE
+  exit 0
+rescue
+  raise if $DEBUG
+  $stderr.puts $!.message
+  exit 1
+end
