@@ -1,5 +1,6 @@
 require "bundler"
 require "test/unit"
+require "logging"
 
 Bundler.setup
 
@@ -74,5 +75,25 @@ module LoggingHelper
 
   def string_io_logger
     Logging.logger(StringIO.new)
+  end
+end
+
+module AdapterHelper
+  include LoggingHelper
+
+  def config_file
+    File.expand_path('../../../config/database.yml', __FILE__)
+  end
+
+  def environment
+    'test'
+  end
+
+  def config
+    @config ||= Dbu::Config.load_from(config_file, environment)
+  end
+
+  def adapter
+    @adapter ||= config.adapter
   end
 end

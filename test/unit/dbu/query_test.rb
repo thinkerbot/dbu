@@ -1,10 +1,29 @@
 require File.expand_path('../../helper.rb', __FILE__)
 require 'dbu/query'
-require 'dbu/adapters/preview'
 
 class Dbu::QueryTest < Test::Unit::TestCase
   Query = Dbu::Query
-  PreviewAdapter = Dbu::Adapters::Preview
+
+  class PreviewAdapter
+    attr_reader :target
+
+    def initialize(config = {}, logger = nil)
+      @target = config.fetch(:target, [])
+    end
+
+    def exec(sql)
+      super
+      target << sql
+    end
+
+    def escape(str)
+      str.to_s
+    end
+
+    def escape_literal(str)
+      str.to_s
+    end
+  end
 
   def adapter
     @adapter ||= PreviewAdapter.new
