@@ -23,6 +23,10 @@ module Dbu
           command += ["--column-names"]
         end
 
+        if options[:echo]
+          command += ["-v"]
+        end
+
         if options[:mode] == 'preview'
           command += ["-p"]
         end

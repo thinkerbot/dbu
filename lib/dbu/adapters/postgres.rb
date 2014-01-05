@@ -16,6 +16,10 @@ module Dbu
           command += ["--pset=footer=off"]
         end
 
+        if options[:echo]
+          command += ["--echo-all"]
+        end
+
         command
       end
 
