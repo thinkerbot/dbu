@@ -5,7 +5,7 @@ module Dbu
   module Adapters
     class Postgres < Adapter
       def command_args(options = {})
-        command = ["psql", "-h", config.host, "-p", config.port, "-U", config.username, "-d", config.database]
+        command = ["psql", "-h", config.host, "-p", config.port, "-U", config.username, "-d", config.database, "-v", "ON_ERROR_STOP=on"]
 
         if options[:stream]
           command += ["--no-align", "--field-separator", options[:field_sep], "--tuples-only", "--quiet"]
@@ -17,6 +17,7 @@ module Dbu
         end
 
         if options[:echo]
+          command -= ["--quiet"]
           command += ["--echo-all"]
         end
 
