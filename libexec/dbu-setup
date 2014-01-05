@@ -39,7 +39,7 @@ options:
       if File.exists?(value)
         File.mtime(value)
       else
-        Time.parse(value)
+        Time.parse(value) rescue nil
       end
     end
   end.parse!
@@ -52,12 +52,21 @@ options:
     config_file = File.join(target_dir, "config.yml")
     config_exe  = File.join(target_dir, "config")
     sql_files = Dir.glob(File.join(target_dir, "**/*.sql"))
+    sql_files = sql_files.sort_by do |sql_file|
+      File.basename(sql_file)
+    end
 
     if cutoff
-      sql_files.select! do |sql_file|
+      out_of_date_files = sql_files.select do |sql_file|
         File.mtime(sql_file) > cutoff
       end
-      next if sql_files.empty?
+      start_file  = out_of_date_files.first
+      start_index = sql_files.index(start_file)
+      sql_files.shift(start_index)
+    end
+
+    if sql_files.empty?
+      next
     end
 
     config_text = ""

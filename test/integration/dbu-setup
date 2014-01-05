@@ -66,14 +66,14 @@ dbu setup -h | grep -q "usage: dbu setup"
 # -z
 #
 
-test_dbu_setup_only_prints_files_newer_than_z () {
+test_dbu_setup_prints_all_files_lexically_after_out_of_date_file () {
 printf "a\n" > "$ts_test_dir/a.sql"
 printf "b\n" > "$ts_test_dir/b.sql"
 printf "c\n" > "$ts_test_dir/c.sql"
 
 touch -t "$(date -r 1 "+%Y%m%d%H%M.%S")" "$ts_test_dir/a.sql"
 touch -t "$(date -r 2 "+%Y%m%d%H%M.%S")" "$ts_test_dir/b.sql"
-touch -t "$(date -r 3 "+%Y%m%d%H%M.%S")" "$ts_test_dir/c.sql"
+touch -t "$(date -r 1 "+%Y%m%d%H%M.%S")" "$ts_test_dir/c.sql"
 
 dbu setup -z "$(date -r 1 "+%Y-%m-%d %H:%M:%S")" "$ts_test_dir" | assert_output "\
 b
@@ -92,6 +92,22 @@ touch -t "$(date -r 3 "+%Y%m%d%H%M.%S")" "$ts_test_dir/c.sql"
 touch -t "$(date -r 1 "+%Y%m%d%H%M.%S")" "$ts_test_dir/d"
 
 dbu setup -z "$ts_test_dir/d" "$ts_test_dir" | assert_output "\
+b
+c
+"
+}
+
+test_dbu_setup_z_builds_all_for_non_existant_file () {
+printf "a\n" > "$ts_test_dir/a.sql"
+printf "b\n" > "$ts_test_dir/b.sql"
+printf "c\n" > "$ts_test_dir/c.sql"
+
+touch -t "$(date -r 1 "+%Y%m%d%H%M.%S")" "$ts_test_dir/a.sql"
+touch -t "$(date -r 2 "+%Y%m%d%H%M.%S")" "$ts_test_dir/b.sql"
+touch -t "$(date -r 3 "+%Y%m%d%H%M.%S")" "$ts_test_dir/c.sql"
+
+dbu setup -z "$ts_test_dir/d" "$ts_test_dir" | assert_output "\
+a
 b
 c
 "
