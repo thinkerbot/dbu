@@ -30,7 +30,7 @@ module Dbu
         env
       end
 
-      def new_conn
+      def _new_conn_
         conn = PG::Connection.open(
           :host     => config.host,
           :dbname   => config.database,
@@ -41,54 +41,33 @@ module Dbu
         conn
       end
 
-      def prepare_sql(sql, args = [])
+      def _prepare_sql_(sql, args)
         argh = {}
         args.each_with_index {|arg, i| argh[arg] = "$#{i + 1}" }
         [sql % argh, args]
       end
 
-      def prepare(name, sql)
-        super
-        if preview?
-          preview_target.puts "prepare #{escape(name)} as\n#{sql}"
-        else
-          conn.prepare(name, sql)
-        end
+      def _prepare_(name, sql)
+        conn.prepare(name, sql)
       end
 
-      def exec_prepared(name, args)
-        super
-        if preview?
-          @last_result = nil
-          vars = args.map {|arg| escape_literal(arg) }
-          preview_target.puts "execute #{escape(name)}(#{vars.join(', ')});"
-          []
-        else
-          @last_result = conn.exec_prepared(name, args)
-          @last_result.check
-          @last_result.enum_for(:each_row)
-        end
+      def _exec_prepared_(name, args)
+        @last_result = conn.exec_prepared(name, args)
+        @last_result.check
+        @last_result.enum_for(:each_row)
       end
 
-      def deallocate(name)
-        super
+      def _deallocate_(name)
         exec "deallocate #{escape(name)}"
       end
 
-      def exec(sql)
-        super
-        if preview?
-          @last_result = nil
-          preview_target.puts sql
-          []
-        else
-          @last_result = conn.exec(sql)
-          @last_result.check
-          @last_result.enum_for(:each_row)
-        end
+      def _exec_(sql)
+        @last_result = conn.exec(sql)
+        @last_result.check
+        @last_result.enum_for(:each_row)
       end
 
-      def run(name, *args)
+      def _run_(name, args)
         exec "select #{escape(name)}(#{args.map {|arg| escape_literal(arg) }.join(', ')});"
       end
 

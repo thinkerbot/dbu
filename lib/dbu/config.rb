@@ -1,5 +1,6 @@
 require 'dbu/registry'
 require 'dbu/adapters'
+require 'dbu/previewers'
 
 module Dbu
   class Config
@@ -26,6 +27,10 @@ module Dbu
 
     def adapter
       @adapter ||= Adapters.lookup(adapter_name).new(self)
+    end
+
+    def previewer
+      @previewer ||= Previewers.lookup(adapter_name)
     end
 
     def host

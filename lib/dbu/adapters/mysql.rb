@@ -40,11 +40,11 @@ module Dbu
         env
       end
 
-      def new_conn
+      def _new_conn_
         ::Mysql.connect(config.host, config.username, config.password, config.database, config.port)
       end
 
-      def prepare_sql(sql, args = [])
+      def _prepare_sql_(sql, args)
         argh = {}
         args.each {|arg| argh[arg] = "\n<:::#{arg}:::>\n" }
         signature_sql = sql % argh
@@ -59,53 +59,27 @@ module Dbu
         [sql % argh, signature]
       end
 
-      def prepare(name, sql)
-        super
-        if preview?
-          lines = sql.lines.map {|line| escape(line.chomp("\n")) }
-          preview_target.puts "prepare #{escape(name)} from '\n#{lines.join("\n")}\n';"
-        else
-          @prepared_statements[name] = conn.prepare(sql)
-        end
+      def _prepare_(name, sql)
+        @prepared_statements[name] = conn.prepare(sql)
       end
 
-      def exec_prepared(name, args = [])
-        super
-        if preview?
-          @last_result = nil
-          vars = []
-          args.each_with_index do |arg, i|
-            preview_target.puts "set @v#{i+1} = #{escape_literal(arg)};"
-            vars << "@v#{i+1}"
-          end
-          preview_target.puts "execute #{escape(name)} using #{vars.join(', ')};"
-          []
-        else
-          statement = @prepared_statements[name] or raise "no such prepared statement: #{name.inspect}"
-          @last_result = statement.execute(*args)
-          @last_result.enum_for(:each)
-        end
+      def _exec_prepared_(name, args)
+        statement = @prepared_statements[name] or raise "no such prepared statement: #{name.inspect}"
+        @last_result = statement.execute(*args)
+        @last_result.enum_for(:each)
       end
 
-      def deallocate(name)
-        super
+      def _deallocate_(name)
         @prepared_statements.delete(name)
         exec "deallocate prepare #{escape(name)}"
       end
 
-      def exec(sql)
-        super
-        if preview?
-          @last_result = nil
-          preview_target.puts sql
-          []
-        else
-          @last_result = conn.query(sql)
-          @last_result.enum_for(:each)
-        end
+      def _exec_(sql)
+        @last_result = conn.query(sql)
+        @last_result.enum_for(:each)
       end
 
-      def run(name, args = [])
+      def _run_(name, args)
         exec "call #{escape(name)}(#{args.map {|arg| escape_literal(arg) }.join(', ')});"
       end
 
