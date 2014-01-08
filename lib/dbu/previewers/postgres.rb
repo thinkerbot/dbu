@@ -22,6 +22,10 @@ module Dbu
         io.puts sql
         []
       end
+
+      def _deallocate_(name)
+        io.puts "deallocate #{escape(name)};"
+      end
     end
   end
 end

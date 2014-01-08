@@ -25,4 +25,71 @@ id	int
 "
 }
 
+#
+# usage
+#
+
+test_dbu_query_executes_query_as_sql () {
+dbu conn <<SQL
+drop table if exists example;
+create table example (id int);
+SQL
+
+export DBU_LOG_FORMAT='[] %l %m\n'
+dbu query columns example -v 2>&1 | sed -e 's/".*"/"..."/' | assert_output "\
+[] INFO register columns
+[] INFO exec \"...\"
+id	int
+"
+}
+
+#
+# -s
+#
+
+test_dbu_query_s_prints_sql () {
+dbu query columns example -s | assert_output "\
+select column_name,
+       data_type
+  from information_schema.columns
+ where table_name = 'example'
+ order by column_name;
+"
+}
+
+#
+# -p
+#
+
+test_dbu_query_p_executes_query_using_prepare () {
+dbu conn <<SQL
+drop table if exists example;
+create table example (id int);
+SQL
+
+export DBU_LOG_FORMAT='[] %l %m\n'
+dbu query columns example -p -v 2>&1 | sed -e 's/".*"/"..."/' | assert_output "\
+[] INFO register columns
+[] INFO prepare columns_query \"...\"
+[] INFO execute columns_query [\"...\"]
+[] INFO deallocate columns_query
+id	int
+"
+}
+
+test_dbu_query_ps_prints_prepare_sql () {
+dbu query columns example -ps | assert_output "\
+prepare columns_query from '
+select column_name,
+       data_type
+  from information_schema.columns
+ where table_name = ?
+ order by column_name;
+';
+set @v1 = 'example';
+execute columns_query using @v1;
+deallocate prepare columns_query;
+"
+}
+
 . ts

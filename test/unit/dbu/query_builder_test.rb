@@ -1,3 +1,4 @@
+#!/usr/bin/env ruby
 require File.expand_path('../../helper.rb', __FILE__)
 require 'dbu/query_builder'
 

@@ -34,7 +34,7 @@ module Dbu
     end
 
     def exec_prepared(name, args = [])
-      logger.info { "exec #{name} #{args.inspect}" }
+      logger.info { "execute #{name} #{args.inspect}" }
       _exec_prepared_(name, args)
     end
 

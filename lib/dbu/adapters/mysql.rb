@@ -70,8 +70,10 @@ module Dbu
       end
 
       def _deallocate_(name)
+        # I don't know if it is sufficient to let the prepared statement be
+        # gc'd to deallocate.  Sending a 'deallocate' exec resulted in an
+        # error suggesting the statement hadn't actually been prepared...
         @prepared_statements.delete(name)
-        exec "deallocate prepare #{escape(name)}"
       end
 
       def _exec_(sql)

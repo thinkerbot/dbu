@@ -58,7 +58,7 @@ module Dbu
       end
 
       def _deallocate_(name)
-        exec "deallocate #{escape(name)}"
+        conn.exec "deallocate #{escape(name)};"
       end
 
       def _exec_(sql)
