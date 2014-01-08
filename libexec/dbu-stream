@@ -1,11 +1,14 @@
 #!/usr/bin/env ruby
 begin
   require 'dbu'
+  require 'dbu/parsers'
 
   options = Dbu.options(
-    :mode => :query,
+    :mode      => :query,
     :field_sep => "\t",
-    :input_format => :line
+    :preview   => false,
+    :prepare   => false,
+    :parser_type => 'line'
   )
   OptionParser.new do |opts|
     opts.banner = %{
@@ -43,16 +46,24 @@ options:
       exit
     end
 
+    opts.on("-j", "--json", "json line input") do
+      options[:parser_type] = 'json'
+    end
+
     opts.on("-l", "--list", "list queries") do
       options[:mode] = :list
     end
 
-    opts.on("-p", "--preview", "preview command") do
-      options[:mode] = :preview
+    opts.on("-p", "--prepare", "prepare query") do
+      options[:prepare] = true
+    end
+
+    opts.on("-s", "--sql", "print sql") do
+      options[:preview] = true
     end
 
     opts.on("-v", "--verbose", "verbose output") do
-      options[:level] -= 1
+      options[:log_level] -= 1
     end
 
     opts.on("--version", "print version information") do |node|
@@ -63,54 +74,61 @@ options:
   Dbu.setup(options)
 
   config    = Dbu.init_config(options)
-  adapter   = config.adapter
   registry  = config.registry
 
-  field_sep = options[:field_sep]
-  mode      = options[:mode]
-  headers   = options[:headers]
-
-  if mode == :list
+  if options[:mode] == :list
     registry.populate
-    summaries = registry.summaries
-    max_len   = summaries.keys.map(&:length).max
-    format    = "  %-#{max_len}s  %s"
-    summaries.keys.sort.each do |key|
-      puts format % [key, summaries[key]]
+    queries = registry.queries
+    max_len = queries.keys.map(&:length).max
+    format  = "  %-#{max_len}s  %s"
+    queries.keys.sort.each do |key|
+      puts format % [key, queries[key].desc]
     end
     exit
   end
 
-  name = ARGV.shift
-  case mode
-  when :query
-
-    query.bind(adapter)
-    while line = ARGF.gets
-      args = parser.parse(line)
-      rows = query.exec(args)
-
-      if headers
-        puts adapter.last_headers.join(field_sep)
-        headers = false
-      end
-
-      rows.each do |row|
-        puts row.join(field_sep)
-      end
-    end
-    query.unbind
-
-  when :preview
-    puts query.preview
-    while line = ARGF.gets
-      args = parser.parse(line)
-      puts args.inspect
-    end
-
-  else
-    raise "invalid mode: #{mode.inspect}"
+  adapter = config.adapter
+  if options[:preview]
+    adapter.extend config.previewer
+    adapter.io = $stdout
   end
+
+  name = ARGV.shift
+  if name.nil?
+    raise "no query name specified"
+  end
+
+  prepare   = options[:prepare]
+  headers   = options[:headers]
+  field_sep = options[:field_sep]
+
+  query = registry.lookup(name)
+  parser = config.parser(options)
+
+  query.bind(adapter)
+  query.prepare if prepare
+
+  while line = ARGF.gets
+    args = parser.parse(line)
+    rows = \
+    if prepare
+      query.exec_prepared(args)
+    else
+      query.exec(args)
+    end
+
+    if headers
+      headers = adapter.last_headers
+      puts headers.join(field_sep) unless headers.empty?
+      headers = false
+    end
+
+    rows.each do |row|
+      puts row.join(field_sep)
+    end
+  end
+
+  query.unbind
 
 rescue Interrupt
   exit 130

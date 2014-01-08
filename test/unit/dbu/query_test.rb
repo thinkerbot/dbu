@@ -1,10 +1,38 @@
+#!/usr/bin/env ruby
 require File.expand_path('../../helper.rb', __FILE__)
 require 'dbu/query'
-require 'dbu/adapters/preview'
 
 class Dbu::QueryTest < Test::Unit::TestCase
   Query = Dbu::Query
-  PreviewAdapter = Dbu::Adapters::Preview
+
+  class PreviewAdapter
+    attr_reader :log
+
+    def initialize(config = {}, logger = nil)
+      @log = config.fetch(:log, [])
+    end
+
+    def prepare(*args)
+      @log << [:prepare, *args]
+      args.last
+    end
+
+    [:exec_prepared, :deallocate, :exec].each do |method_name|
+      class_eval %{
+        def #{method_name}(*args)
+          @log << [:#{method_name}, *args]
+        end
+      }
+    end
+
+    def escape(str)
+      str.to_s
+    end
+
+    def escape_literal(str)
+      str.to_s
+    end
+  end
 
   def adapter
     @adapter ||= PreviewAdapter.new
@@ -57,7 +85,17 @@ class Dbu::QueryTest < Test::Unit::TestCase
     )
     query.bind adapter
     query.exec :b => 'B'
-    assert_equal ["A B C"], adapter.target
+    assert_equal [[:exec, "A B C"]], adapter.log
+  end
+
+  def test_exec_with_array_input
+    query = Query.new(
+      :sql => "A %{b} C",
+      :args => {:b => nil}
+    )
+    query.bind adapter
+    query.exec ['B']
+    assert_equal [[:exec, "A B C"]], adapter.log
   end
 
   def test_bind_calls_before_sql_and_unbind_calls_after_sql
@@ -70,9 +108,14 @@ class Dbu::QueryTest < Test::Unit::TestCase
     query.bind adapter
     query.exec
     query.exec
-    assert_equal adapter, query.unbind
+    query.unbind
 
-    assert_equal ["A", "B", "B", "C"], adapter.target
+    assert_equal [
+      [:exec, "A"],
+      [:exec, "B"],
+      [:exec, "B"],
+      [:exec, "C"]
+    ], adapter.log
   end
 
   def test_bind_with_vars_formats_sql_statements_before_use
@@ -80,16 +123,21 @@ class Dbu::QueryTest < Test::Unit::TestCase
       :before_sql => "A%{one}",
       :sql        => "B%{one}%{two}",
       :after_sql  => "C%{one}",
-      :vars  => {:one => nil},
+      :vars       => {:one => nil},
       :args       => {:two => nil}
     )
 
     query.bind adapter, :one => 1
     query.exec :two => 2
     query.exec :two => 3
-    assert_equal adapter, query.unbind
+    query.unbind
 
-    assert_equal ["A1", "B12", "B13", "C1"], adapter.target
+    assert_equal [
+      [:exec, "A1" ],
+      [:exec, "B12"],
+      [:exec, "B13"],
+      [:exec, "C1"]
+    ], adapter.log
   end
 
   def test_bind_allows_rebind_with_different_vars
@@ -97,23 +145,85 @@ class Dbu::QueryTest < Test::Unit::TestCase
       :before_sql => "A%{one}",
       :sql        => "B%{one}%{two}",
       :after_sql  => "C%{one}",
-      :vars  => {:one => nil},
+      :vars       => {:one => nil},
       :args       => {:two => nil}
     )
 
     query.bind adapter, :one => 1
     query.exec :two => 2
     query.exec :two => 3
-    assert_equal adapter, query.unbind
+    query.unbind
 
     query.bind adapter, :one => 4
     query.exec :two => 5
     query.exec :two => 6
-    assert_equal adapter, query.unbind
+    query.unbind
 
     assert_equal [
-      "A1", "B12", "B13", "C1",
-      "A4", "B45", "B46", "C4"
-    ], adapter.target
+      [:exec, "A1" ],
+      [:exec, "B12"],
+      [:exec, "B13"],
+      [:exec, "C1" ],
+      [:exec, "A4" ],
+      [:exec, "B45"],
+      [:exec, "B46"],
+      [:exec, "C4"]
+    ], adapter.log
+  end
+
+  #
+  # prepare, exec_prepared
+  #
+
+  def test_prepare_and_exec_prepared_workflow
+    query = Query.new(
+      :before_sql => "A%{one}",
+      :sql        => "B%{one}%{two}",
+      :after_sql  => "C%{one}",
+      :vars       => {:one => nil},
+      :args       => {:two => nil}
+    )
+
+    query.bind adapter, :one => 1
+    query.prepare
+    query.exec_prepared :two => 2
+    query.exec_prepared :two => 3
+    query.deallocate
+    query.unbind
+
+    assert_equal [
+      [:exec, "A1" ],
+      [:prepare, "anon_query", "B1%{two}", [:two]],
+      [:exec_prepared, "anon_query", [2]],
+      [:exec_prepared, "anon_query", [3]],
+      [:deallocate, "anon_query"],
+      [:exec, "C1" ],
+    ], adapter.log
+  end
+
+  def test_prepare_and_exec_prepared_with_array_inputs
+    query = Query.new(
+      :before_sql => "A%{one}",
+      :sql        => "B%{one}%{two}",
+      :after_sql  => "C%{one}",
+      :vars       => {:one => nil},
+      :args       => {:two => nil}
+    )
+
+    query.bind adapter, :one => 1
+    query.prepare
+    query.exec_prepared [2]
+    query.exec_prepared [3]
+    query.deallocate
+    query.unbind
+
+    assert_equal [
+      [:exec, "A1" ],
+      [:prepare, "anon_query", "B1%{two}", [:two]],
+      [:exec_prepared, "anon_query", [2]],
+      [:exec_prepared, "anon_query", [3]],
+      [:deallocate, "anon_query"],
+      [:exec, "C1" ],
+    ], adapter.log
   end
 end

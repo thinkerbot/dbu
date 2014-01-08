@@ -1,7 +1,17 @@
 require 'dbu/registry'
+require 'dbu/adapters'
+require 'dbu/previewers'
+require 'dbu/parsers'
 
 module Dbu
   class Config
+    class << self
+      def load_from(config_file, environment = 'development')
+        require 'yaml'
+        new(YAML.load_file(config_file).fetch(environment))
+      end
+    end
+
     attr_reader :options
 
     def initialize(options)
@@ -16,21 +26,17 @@ module Dbu
       options['dbu']
     end
 
-    def adapter_class
-      case adapter_name
-      when 'postgres'
-        require 'dbu/adapters/postgres'
-        Dbu::Adapters::Postgres
-      when 'mysql'
-        require 'dbu/adapters/mysql'
-        Dbu::Adapters::Mysql
-      else
-        raise "unsupported dbu database: #{adapter_name.inspect}"
-      end
+    def adapter
+      @adapter ||= Adapters.lookup(adapter_name).new(self)
     end
 
-    def adapter
-      @adapter ||= adapter_class.new(self)
+    def previewer
+      @previewer ||= Previewers.lookup(adapter_name)
+    end
+
+    def parser(options = {})
+      parser_type = options[:parser_type]
+      Parsers.lookup(parser_type).new(options)
     end
 
     def host
@@ -55,7 +61,7 @@ module Dbu
 
     def path
       path = options['dbu_path'] || File.expand_path('db/dbu')
-      path.to_s.split(':') + [File.expand_path("../../../db/#{adapter_name}", __FILE__)]
+      path.to_s.split(':') + [File.expand_path("../../../db/dbu/#{adapter_name}", __FILE__)]
     end
 
     def registry

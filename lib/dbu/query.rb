@@ -36,7 +36,7 @@ module Dbu
     attr_reader :vars
 
     def initialize(options = {})
-      @name = options.fetch(:name, nil)
+      @name = options.fetch(:name, 'anon')
       @desc = options.fetch(:desc, nil)
       @help = options.fetch(:help, nil)
       @before_sql = options.fetch(:before_sql, nil)
@@ -48,7 +48,7 @@ module Dbu
     end
 
     def signature
-      args.keys
+      @signature || args.keys
     end
 
     def adapter
@@ -63,21 +63,60 @@ module Dbu
       unbind if bound?
       @adapter = adapter
       @before_sql, @sql, @after_sql = @originals.map {|str| format(str, vars) }
-      adapter.exec(before_sql) if before_sql
+
+      if before_sql
+        adapter.exec(before_sql)
+      end
+      self
+    end
+
+    def prepare
+      unless prepared?
+        @signature = adapter.prepare(query_name, @sql, signature)
+      end
+      self
+    end
+
+    def prepared?
+      @signature ? true : false
     end
 
     def exec(args = {})
-      unless args.kind_of?(Hash)
+      if args.kind_of?(Array)
         args = Hash[signature.zip(args)]
       end
       adapter.exec(sql(args))
     end
 
+    def exec_prepared(args = [])
+      if args.kind_of?(Hash)
+        args = signature.map {|key| args[key] }
+      end
+      adapter.exec_prepared(query_name, args)
+    end
+
+    def deallocate
+      if prepared?
+        adapter.deallocate(query_name)
+        @signature = nil
+      end
+      self
+    end
+
     def unbind
-      adapter.exec(after_sql) if after_sql
-      @before_sql, @sql, @after_sql = @originals if @originals
-      adapter, @adapter = @adapter, nil
-      adapter
+      deallocate
+
+      if after_sql
+        adapter.exec(after_sql)
+      end
+
+      @before_sql, @sql, @after_sql = @originals
+      @adapter = nil
+      self
+    end
+
+    def query_name
+      @query_name ||= "#{name}_query"
     end
 
     def sql(args = {})
@@ -87,8 +126,8 @@ module Dbu
         argh[key] = adapter.escape_literal(value)
       end
 
-      self.args.each_pair do |key, value|
-        argh[key] ||= adapter.escape_literal(value)
+      self.args.each_pair do |key, default|
+        argh[key] ||= adapter.escape_literal(default)
       end
 
       @sql % argh
@@ -109,7 +148,7 @@ module Dbu
         argh[key] ||= adapter.escape(value)
       end
 
-      signature.each do |key|
+      args.each_key do |key|
         argh[key] = "%{#{key}}"
       end
 

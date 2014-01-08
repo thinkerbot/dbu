@@ -40,30 +40,53 @@ module Dbu
         env
       end
 
-      def new_conn
+      def _new_conn_
         ::Mysql.connect(config.host, config.username, config.password, config.database, config.port)
       end
 
-      def prepare(name, sql)
-        super
+      def _prepare_sql_(sql, args)
+        argh = {}
+        args.each {|arg| argh[arg] = "\n<:::#{arg}:::>\n" }
+        signature_sql = sql % argh
+
+        signature = \
+        signature_sql.split("\n").map do |line|
+          line =~ /^<:::(\w+):::>$/ ? $1.to_sym : nil
+        end.compact
+
+        argh = {}
+        signature.each {|arg| argh[arg] = "?" }
+        [sql % argh, signature]
+      end
+
+      def _prepare_(name, sql)
         @prepared_statements[name] = conn.prepare(sql)
       end
 
-      def exec_prepared(name, args)
-        super
+      def _exec_prepared_(name, args)
         statement = @prepared_statements[name] or raise "no such prepared statement: #{name.inspect}"
         @last_result = statement.execute(*args)
         @last_result.enum_for(:each)
       end
 
-      def exec(sql)
-        super
+      def _deallocate_(name)
+        # I don't know if it is sufficient to let the prepared statement be
+        # gc'd to deallocate.  Sending a 'deallocate' exec resulted in an
+        # error suggesting the statement hadn't actually been prepared...
+        @prepared_statements.delete(name)
+      end
+
+      def _exec_(sql)
         @last_result = conn.query(sql)
         @last_result.enum_for(:each)
       end
 
+      def _run_(name, args)
+        exec "call #{escape(name)}(#{args.map {|arg| escape_literal(arg) }.join(', ')});"
+      end
+
       def escape(str)
-        conn.escape_string(str)
+        conn.escape_string(str.to_s)
       end
 
       def escape_literal(str)
@@ -71,12 +94,7 @@ module Dbu
       end
 
       def last_headers
-        last_result.fields.map(&:name)
-      end
-
-      def deallocate(name)
-        super
-        @prepared_statements.delete(name)
+        last_result ? last_result.fields.map(&:name) : []
       end
     end
   end

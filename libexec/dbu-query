@@ -4,6 +4,8 @@ begin
 
   options = Dbu.options(
     :mode => :query,
+    :preview => false,
+    :prepare => false,
     :field_sep => "\t",
   )
   OptionParser.new do |opts|
@@ -46,12 +48,16 @@ options:
       options[:mode] = :list
     end
 
-    opts.on("-p", "--preview", "preview command") do
-      options[:mode] = :preview
+    opts.on("-p", "--prepare", "prepare query") do
+      options[:prepare] = true
+    end
+
+    opts.on("-s", "--sql", "print query") do
+      options[:preview] = true
     end
 
     opts.on("-v", "--verbose", "verbose output") do
-      options[:level] -= 1
+      options[:log_level] -= 1
     end
 
     opts.on("--version", "print version information") do |node|
@@ -61,49 +67,50 @@ options:
   end.parse!
   Dbu.setup(options)
 
+  name, *args = ARGV.dup; ARGV.clear
+
   config    = Dbu.init_config(options)
-  adapter   = config.adapter
   registry  = config.registry
 
-  field_sep = options[:field_sep]
-  mode      = options[:mode]
-
-  if mode == :list
+  if options[:mode] == :list
     registry.populate
     queries = registry.queries
-    max_len   = queries.keys.map(&:length).max
-    format    = "  %-#{max_len}s  %s"
+    max_len = queries.keys.map(&:length).max
+    format  = "  %-#{max_len}s  %s"
     queries.keys.sort.each do |key|
       puts format % [key, queries[key].desc]
     end
     exit
   end
 
-  name, *args = ARGV.dup; ARGV.clear
-  query = registry.lookup(name)
-
-  case mode
-  when :query
-
-    query.bind(adapter)
-    rows = query.exec(args)
-
-    if options[:headers]
-      puts adapter.last_headers.join(field_sep)
-    end
-
-    rows.each do |row|
-      puts row.join(field_sep)
-    end
-    query.unbind
-
-  when :preview
-    puts query.preview
-    puts args.inspect
-
-  else
-    raise "invalid mode: #{mode.inspect}"
+  adapter = config.adapter
+  if options[:preview]
+    adapter.extend config.previewer
+    adapter.io = $stdout
   end
+
+  query = registry.lookup(name)
+  query.bind(adapter)
+
+  rows = \
+  if options[:prepare]
+    query.prepare
+    query.exec_prepared(args)
+  else
+    query.exec(args)
+  end
+
+  field_sep = options[:field_sep]
+  if options[:headers]
+    headers = adapter.last_headers
+    puts headers.join(field_sep) unless headers.empty?
+  end
+
+  rows.each do |row|
+    puts row.join(field_sep)
+  end
+
+  query.unbind
 
 rescue Interrupt
   exit 130

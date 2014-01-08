@@ -10,11 +10,6 @@ module Dbu
       def parse(line)
         line.strip.split(field_sep)
       end
-
-      def parse_hash(line)
-        args = parse(line)
-        Hash[signature.zip(args)]
-      end
     end
   end
 end
