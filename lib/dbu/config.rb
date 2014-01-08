@@ -1,6 +1,7 @@
 require 'dbu/registry'
 require 'dbu/adapters'
 require 'dbu/previewers'
+require 'dbu/parsers'
 
 module Dbu
   class Config
@@ -31,6 +32,11 @@ module Dbu
 
     def previewer
       @previewer ||= Previewers.lookup(adapter_name)
+    end
+
+    def parser(options = {})
+      parser_type = options[:parser_type]
+      Parsers.lookup(parser_type).new(options)
     end
 
     def host

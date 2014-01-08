@@ -5,4 +5,53 @@ setup () {
 export DBU_ENVIRONMENT=postgres
 }
 
+test_dbu_stream_executes_query_with_args_from_each_input_line () {
+dbu conn <<SQL
+drop table if exists example;
+create table example (id int);
+SQL
+
+printf "%s\n" example example | dbu stream columns | assert_output "\
+id	integer
+id	integer
+"
+}
+
+#
+# -s
+#
+
+test_dbu_stream_s_prints_sql () {
+printf "%s\n" example example | dbu stream columns -s | assert_output "\
+select column_name,
+       data_type
+  from information_schema.columns
+ where table_name = 'example'
+ order by column_name;
+select column_name,
+       data_type
+  from information_schema.columns
+ where table_name = 'example'
+ order by column_name;
+"
+}
+
+#
+# -p
+#
+
+test_dbu_query_ps_prints_prepare_sql () {
+printf "%s\n" example example | dbu stream columns -ps | assert_output "\
+prepare columns_query as
+select column_name,
+       data_type
+  from information_schema.columns
+ where table_name = \$1
+ order by column_name;
+execute columns_query('example');
+execute columns_query('example');
+deallocate columns_query;
+"
+}
+
 . ts
