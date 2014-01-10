@@ -27,6 +27,13 @@ source /etc/default/locale
 # Prerequisites
 ########################################
 
+# add postgres packages
+mkdir -p /etc/apt/sources.list.d
+cat > /etc/apt/sources.list.d/pgdg.list <<DOC
+deb http://apt.postgresql.org/pub/repos/apt/ squeeze-pgdg main
+DOC
+wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+
 apt-get update
 
 # Developer tools
@@ -37,11 +44,11 @@ apt-get -y install expect
 # Install postgres
 #
 
-sudo apt-get -y install postgresql
+apt-get -y install postgresql-9.3
 
 # Fix authentication method for database
-sed -i.bak -e "s/#listen_addresses = 'localhost'/listen_addresses = '*'    /" /etc/postgresql/9.1/main/postgresql.conf
-sed -i.bak -f - /etc/postgresql/9.1/main/pg_hba.conf <<EOS
+sed -i.bak -e "s/#listen_addresses = 'localhost'/listen_addresses = '*'    /" /etc/postgresql/9.3/main/postgresql.conf
+sed -i.bak -f - /etc/postgresql/9.3/main/pg_hba.conf <<EOS
   /local \{1,\}all \{1,\}all/s/peer/trust/
   /host \{1,\}all \{1,\}all/s/md5/trust/
   /host \{1,\}all \{1,\}all/s/127.0.0.1\/32/0.0.0.0\/0/
